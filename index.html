@@ -28,7 +28,7 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <!-- Official Hanicraft Logo from https://hanicraft.in/ -->
-        <a href="https://hanicraft.in/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 group">
+        <a href="https://hanicraft.in/" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 group">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-900/30 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-950/40 group-hover:border-emerald-400 transition">
             <svg class="w-6 h-6 text-emerald-400" viewBox="0 0 100 100" fill="currentColor">
               <rect width="100" height="100" rx="20" fill="#10b981"/>
@@ -38,7 +38,7 @@
           </div>
           <div>
             <h1 class="text-sm font-bold text-slate-100 tracking-tight flex items-center group-hover:text-emerald-400 transition">
-              <span class="font-normal text-slate-300">hani</span><span class="font-bold text-white">c</span><span class="font-normal text-slate-300">raft</span>
+              <span class="font-bold text-white tracking-normal">hanicraft</span>
             </h1>
             <p class="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold -mt-1">Creatives LLP</p>
           </div>
@@ -182,7 +182,6 @@
               <span>CNC & Laser Cutting:</span>
               <span id="summaryServicesCost" class="font-medium text-slate-200">₹0</span>
             </div>
-            <!-- Dedicated Polish / Paint Cost Row -->
             <div class="flex justify-between text-slate-400">
               <span>Polish / Coating Cost:</span>
               <span id="summaryPolishCost" class="font-medium text-slate-200">₹0</span>
@@ -274,7 +273,7 @@
       
       <!-- TAB 1: SHEET & CUTTING RATES -->
       <div id="tabContent-ratesTab" class="space-y-4">
-        <p class="text-[11px] text-slate-400">Edit full sheet price, sheet cutting rate, and add custom thickness per material:</p>
+        <p class="text-[11px] text-slate-400">Edit full sheet price, sheet cutting rate, and thickness per material:</p>
         <div id="materialRatesContainer" class="space-y-3"></div>
       </div>
 
@@ -436,6 +435,7 @@
 
       state.layers.forEach((layer, idx) => {
         const matInfo = SHEET_PRICES[layer.material] || { rates: {}, cutRates: {} };
+        if (!matInfo.cutRates) matInfo.cutRates = {};
         const availableThicknesses = Object.keys(matInfo.rates);
 
         const div = document.createElement('div');
@@ -538,10 +538,11 @@
       state.layers.forEach(l => {
         const mat = SHEET_PRICES[l.material];
         if (mat) {
+          if (!mat.cutRates) mat.cutRates = {};
           const sheetArea = mat.width * mat.height;
           const pieceArea = (l.width || 0) * (l.height || 0);
           const sheetPrice = mat.rates[l.thickness] || 0;
-          const sheetCutPrice = (mat.cutRates && mat.cutRates[l.thickness]) ? mat.cutRates[l.thickness] : 1500;
+          const sheetCutPrice = mat.cutRates[l.thickness] || 1500;
 
           const costPerPiece = (pieceArea / sheetArea) * sheetPrice;
           const cutCostPerPiece = (pieceArea / sheetArea) * sheetCutPrice;
@@ -699,14 +700,9 @@
 
     function removeThicknessFromMaterial(matName, thickness) {
       if (SHEET_PRICES[matName] && SHEET_PRICES[matName].rates) {
-        // Prevent deleting if it's the last remaining thickness for safety
-        if (Object.keys(SHEET_PRICES[matName].rates).length <= 1) {
-          return;
-        }
+        if (Object.keys(SHEET_PRICES[matName].rates).length <= 1) return;
         delete SHEET_PRICES[matName].rates[thickness];
-        if (SHEET_PRICES[matName].cutRates) {
-          delete SHEET_PRICES[matName].cutRates[thickness];
-        }
+        if (SHEET_PRICES[matName].cutRates) delete SHEET_PRICES[matName].cutRates[thickness];
         renderMasterSettings();
         renderLayers();
         saveAndRecalculate();
@@ -772,6 +768,7 @@
     function saveMasterSettings() {
       Object.keys(SHEET_PRICES).forEach(matName => {
         const mat = SHEET_PRICES[matName];
+        if (!mat.cutRates) mat.cutRates = {};
         Object.keys(mat.rates).forEach(th => {
           const matElem = document.getElementById(`mat_${matName}_${th}`);
           const cutElem = document.getElementById(`cut_${matName}_${th}`);
